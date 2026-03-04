@@ -94,14 +94,6 @@ void requestPrice() {
       .get(Uri.parse(
           'https://data-api.binance.vision/api/v3/ticker/24hr?symbols=$symbols'))
       .onError((e, s) => errResp);
-  // var avascriptionsMarket = http
-  //     .post(Uri.parse('https://avascriptions.com/api/order/market'),
-  //         headers: {'Content-Type': 'application/json; charset=UTF-8'},
-  //         body: json.encode({"page": 1, "pageSize": 5, "keyword": "", "verified":1}))//
-  //     .onError((e, s) => errResp);
-  // var avasPrice = http
-  //     .get(Uri.parse('https://avascriptions.com/api/order/price/'))
-  //     .onError((e, s) => errResp);
   binanceMarket.then((resp) {
     List<TickerPriceChange> list = [];
     //解析binanceMarket json
@@ -111,18 +103,6 @@ void requestPrice() {
       }
     }
 
-    // //解析avascriptionsMarket json
-    // if (resultArr[1].body.isNotEmpty &&
-    //     resultArr[2].body.isNotEmpty &&
-    //     json.decode(resultArr[1].body)['data'] != null &&
-    //     json.decode(resultArr[2].body)['data'] != null) {
-    //   var avaxPrice = json.decode(resultArr[2].body)['data']['avax'];
-    //   for (var e in json.decode(resultArr[1].body)['data']['list']) {
-    //     if (e['tick'] == 'avav' || e['tick'] == 'dino') {
-    //       list.add(TickerPriceChange.fromAvascriptionsJson(e, avaxPrice));
-    //     }
-    //   }
-    // }
 
     //发送lark卡片消息
     var cardJson = '''
@@ -256,53 +236,6 @@ String addColor(String content, bool isRise) {
       : '<font color=\'red\'>$content</font>';
 }
 
-
-import 'dart:async';
-import 'dart:collection';
-import 'dart:convert';
-
-import 'package:block_beats_news_lark_push/util/lark.dart';
-import 'package:http/http.dart' as http;
-
-import 'model/whale_trade_action.dart';
-
-
-Queue<int> msgQueue = Queue(); //为了去重
-
-requestWhaleTradeActions({bool first = false}) async {
-  await http
-      .get(Uri.parse(
-          'https://kingdata.xyz/api/v1/charts/3319/posts?expire=0&page=2&page_size=20&indicatorID=3252&lang=cn'))
-      .then((value) {
-    var map = json.decode(value.body);
-    if (map['code'] != 0) return;
-    List list = map['data']['results'];
-    List<WhaleTradeAction> actionList =
-        list.map((e) => WhaleTradeAction.fromJson(e)).toList();
-    print(
-        'requestWhaleTradeActions success. WhaleTradeActions.length --> ${actionList.length}');
-    for (var e in actionList) {
-      if (!msgQueue.contains(e.id)) {
-        msgQueue.addLast(e.id!);
-        if (!first) sendLarkNews(e);
-      }
-      if (msgQueue.length > 100) {
-        msgQueue.removeFirst();
-      }
-    }
-  }).onError((error, stackTrace) {
-    print(
-        '${DateTime.now().toIso8601String()}\nerror: $error\nstackTrace: $stackTrace\n');
-  });
-}
-
-sendLarkNews(WhaleTradeAction e) async {
-  String content = e.content!.replaceAll('[巨鲸交易] ', '');
-  String notice =
-      '[${e.projectName}][${e.direction == 'long' ? '多' : '空'}]$content';
-  print(notice);
-  sendLarkMsg(notice.replaceAll('\n', '\\n'));
-}
 
 
 import 'dart:convert';
@@ -474,8 +407,6 @@ class Data2 {
   }
 }
 
-  //stackTrace: #0      new Data.fromJson (file:///Users/songdongxu/jobs/block_beats_news/model/block_beats_news.dart:33:5)
-// #1      new Message.fromJson (file:///Users/songdongxu/jobs/block_beats_news/model/block_beats_news.dart:12:40)
 
 import 'dart:math';
 
@@ -590,27 +521,3 @@ class TickerPriceChange {
   }
 }
 
-class WhaleTradeAction {
-  int? id;
-  String? direction;
-  String? content;
-  String? projectName;
-
-  WhaleTradeAction({this.id, this.direction, this.content, this.projectName});
-
-  WhaleTradeAction.fromJson(Map<String, dynamic> json) {
-    id = json['id'];
-    direction = json['direction'];
-    content = json['content'];
-    projectName = json['project_name'];
-  }
-
-  Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['id'] = this.id;
-    data['direction'] = this.direction;
-    data['content'] = this.content;
-    data['project_name'] = this.projectName;
-    return data;
-  }
-}
